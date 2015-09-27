@@ -1,21 +1,4 @@
 #! /bin/bash
-#
-# zfs-fuse - startup script for zfs-fuse daemon
-#
-# chkconfig:   - 26 74
-# description: zfs-fuse daemon
-#
-### BEGIN INIT INFO
-# Provides:           zfs-fuse
-# Required-Start:     fuse
-# Required-Stop:  
-# Should-Start: 
-# Should-Stop: 
-# Default-Start:  
-# Default-Stop: 
-# Short-Description:  Start the zfs-fuse daemon
-# Description:        zfs-fuse daemon
-### END INIT INFO
 
 # Source function library.
 . /etc/rc.d/init.d/functions
@@ -210,24 +193,24 @@ case "$1" in
     stop)
         $1
         ;;
-    restart)
-    	restart 
-        ;;
-    reload)
-	restart
-        ;;
-    force-reload)
-	restart
-        ;;
-    status)
-        pool_status
-        ;;
-    condrestart|try-restart)
-        pool_status_quiet || exit 0
-        restart
-        ;;
+#    restart)
+#    	restart 
+#        ;;
+#    reload)
+#	restart
+#        ;;
+#    force-reload)
+#	restart
+#        ;;
+#    status)
+#        pool_status
+#        ;;
+#    condrestart|try-restart)
+#        pool_status_quiet || exit 0
+#        restart
+#        ;;
     *)
-        echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload}"
+#        echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload}"
         exit 2
 esac
 exit $?
