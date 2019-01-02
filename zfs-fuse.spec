@@ -1,26 +1,17 @@
 %global	_sbindir	/sbin
 
 Name:			zfs-fuse
-Version:		0.7.1
-Release:		4%{?dist}
+Version:		0.7.2.2
+Release:		1%{?dist}
 Summary:		ZFS ported to Linux FUSE
 Group:			System Environment/Base
 License:		CDDL
 URL:			https://github.com/gordan-bobic/zfs-fuse
 Source00:		%{name}/%{name}-%{version}.tar.xz
-%if %{?rhel} <= 6
-Source01:		zfs-fuse.init
-%else
-Source01:		zfs-fuse.service
-%endif
-Source02:		zfs-fuse.scrub
-Source03:		zfs-fuse.sysconfig
-Source04:		zfs-fuse.zfsrc
-Source05:		zfs-fuse.modules-load
 BuildRequires:		fuse-devel libaio-devel scons zlib-devel openssl-devel libattr-devel prelink lzo-devel xz-devel bzip2-devel
 Requires:		fuse >= 2.7.4-1
 Requires:		lzo xz zlib bzip2 libaio
-%if %{?rhel} <= 6
+%if 0%{?rhel} <= 6
 Requires(post):		chkconfig
 Requires(preun):	chkconfig initscripts
 Requires(postun):	initscripts
@@ -45,14 +36,12 @@ Project home page is at http://zfs-fuse.net/
 %prep
 %setup -q
 
-f=LICENSE
-%{__mv} $f $f.iso88591
-iconv -o $f -f iso88591 -t utf8 $f.iso88591
-%{__rm} -f $f.iso88591
-
 %build
 export CCFLAGS="%{optflags}"
 pushd src
+%if 0%{?rhel} <= 6
+%{__perl} -pi -e 's@-fstrict-volatile-bitfields@@' lib/libumem/Makefile.in SConstruct
+%endif
 
 scons --cache-disable --quiet debug=0 %{_smp_mflags}
 
@@ -61,15 +50,17 @@ scons --cache-disable --quiet debug=0 %{_smp_mflags}
 pushd src
 scons debug=0 install install_dir=%{buildroot}%{_sbindir} man_dir=%{buildroot}%{_mandir}/man8/ cfg_dir=%{buildroot}/%{_sysconfdir}/%{name}
 %if 0%{?rhel} <= 6
-%{__install} -Dp -m 0755 %{SOURCE1} %{buildroot}%{_initrddir}/%{name}
+%{__install} -Dp -m 0755 ../zfs-fuse.init %{buildroot}%{_initrddir}/%{name}
 %else
-%{__install} -Dp -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/%{name}.service
+%{__install} -Dp -m 0644 ../zfs-fuse.service %{buildroot}%{_unitdir}/%{name}.service
+%{__install} -Dp -m 0644 ../zfs-fuse-pid.service %{buildroot}%{_unitdir}/%{name}-pid.service
+%{__install} -Dp -m 0644 ../zfs-fuse-oom.service %{buildroot}%{_unitdir}/%{name}-oom.service
 %endif
-%{__install} -Dp -m 0755 %{SOURCE2} %{buildroot}%{_sysconfdir}/cron.weekly/98-%{name}-scrub
-%{__install} -Dp -m 0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/sysconfig/%{name}
-%{__install} -Dp -m 0644 %{SOURCE4} %{buildroot}%{_sysconfdir}/zfs/zfsrc
-%{__install} -Dp -m 0644 %{SOURCE5} %{buildroot}%{_sysconfdir}/modules-load.d/fuse.conf
-%{__install} -Dp -m 0644 %{SOURCE5} %{buildroot}%{_sharedstatedir}/modules-load.d/fuse.conf
+%{__install} -Dp -m 0755 ../zfs-fuse.scrub %{buildroot}%{_sysconfdir}/cron.weekly/98-%{name}-scrub
+%{__install} -Dp -m 0644 ../zfs-fuse.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}
+%{__install} -Dp -m 0644 ../zfsrc %{buildroot}%{_sysconfdir}/zfs/zfsrc
+%{__install} -Dp -m 0644 ../zfs-fuse.modules-load %{buildroot}%{_sysconfdir}/modules-load.d/fuse.conf
+%{__install} -Dp -m 0644 ../zfs-fuse.modules-load %{buildroot}%{_sharedstatedir}/modules-load.d/fuse.conf
 
 #set stack not executable, BZ 911150
 for i in zdb zfs zfs-fuse zpool ztest; do
@@ -147,11 +138,13 @@ fi
 %{_initrddir}/%{name}
 %else
 %{_unitdir}/%{name}.service
+%{_unitdir}/%{name}-pid.service
+%{_unitdir}/%{name}-oom.service
 %endif
 %{_sharedstatedir}/modules-load.d/fuse.conf
 %{_sysconfdir}/modules-load.d/fuse.conf
 %{_sysconfdir}/cron.weekly/98-%{name}-scrub
-%{_sysconfdir}/zfs/zfsrc
+%config(noreplace) %{_sysconfdir}/zfs/zfsrc
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 %{_sysconfdir}/%{name}/zfs_pool_alert
 %{_mandir}/man8/zfs-fuse.8.gz
@@ -161,6 +154,20 @@ fi
 %{_mandir}/man8/zstreamdump.8.gz
 
 %changelog
+* Tue Nov 24 2015 Gordan Bobic <gordan@redsleeve.org> - 0.7.2.2-1
+- Fixed building RPMs directly from a tarball.
+- Add systemd service to immunize zfs-fuse from OOM killer.
+- Extra alignment compiler flags (only on EL7+)
+
+* Thu Oct 29 2015 Gordan Bobic <gordan@redsleeve.org> - 0.7.2.1-1
+- Additional systemd service to immunize zfs-fuse against the
+  OOM killer
+- Silenece the fuse_req_getgroups warning as it floods syslog
+  when zfs-fuse is used for rootfs.
+
+* Tue Jun 16 2015 Gordan Bobic <gordan@redsleeve.org> - 0.7.2-1
+- Support for pool versions 27 and 28
+
 * Fri Jun 12 2015 Gordan Bobic <gordan@redsleeve.org> - 0.7.1-4
 - Add ashift setting support (Ray Vantassle)
 - Additional ARM patches (Ray Vantassle)
