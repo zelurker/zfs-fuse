@@ -54,6 +54,7 @@
 #include "zfs_iter.h"
 #include "zfs_util.h"
 #include "zfs_comutil.h"
+#include <sys/sysmacros.h>
 
 libzfs_handle_t *g_zfs;
 
